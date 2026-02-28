@@ -1,0 +1,15 @@
+{
+  "name": "Wheat Intelligence",
+  "short_name": "WheatIntel",
+  "start_url": ".",
+  "display": "standalone",
+  "background_color": "#020617",
+  "theme_color": "#3b82f6",
+  "icons": [
+    {
+      "src": "https://cdn-icons-png.flaticon.com/512/1067/1067341.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
