@@ -1,43 +1,96 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Wheat Intelligence</title>
+    <link rel="manifest" href="manifest.json">
     <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .custom-scrollbar::-webkit-scrollbar { width: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #334155; border-radius: 10px; }
+    </style>
 </head>
-<body class="bg-slate-950 text-white font-sans">
-    <div class="max-w-md mx-auto min-h-screen border-x border-slate-800 flex flex-col">
-        <header class="p-6 sticky top-0 bg-slate-900/90 backdrop-blur-md border-b border-slate-800 z-20">
-            <h1 class="text-xl font-black italic text-blue-400">WHEAT INTEL</h1>
-            <div class="flex gap-2 mt-4 bg-black p-1 rounded-xl">
-                <button onclick="load('domestic')" id="dBtn" class="flex-1 py-2 text-[10px] font-bold rounded-lg bg-blue-600">DOMESTIC</button>
-                <button onclick="load('global')" id="gBtn" class="flex-1 py-2 text-[10px] font-bold rounded-lg text-slate-500">GLOBAL</button>
+<body class="bg-slate-950 text-slate-200 font-sans selection:bg-blue-500/30">
+
+    <div class="max-w-md mx-auto min-h-screen border-x border-slate-900 flex flex-col shadow-2xl">
+        <header class="p-6 sticky top-0 bg-slate-950/80 backdrop-blur-xl border-b border-slate-900 z-30">
+            <div class="flex justify-between items-center mb-4">
+                <h1 class="text-xl font-black italic tracking-tighter text-blue-500">WHEAT INTEL</h1>
+                <div class="flex items-center gap-2">
+                    <span id="sync-indicator" class="h-2 w-2 bg-green-500 rounded-full animate-pulse"></span>
+                    <span id="last-update" class="text-[10px] text-slate-500 font-mono uppercase">Syncing...</span>
+                </div>
+            </div>
+            
+            <div class="flex bg-slate-900 p-1 rounded-xl border border-slate-800">
+                <button onclick="loadFeed('domestic')" id="domTab" class="flex-1 py-2 text-[10px] font-black rounded-lg transition-all duration-300">DOMESTIC</button>
+                <button onclick="loadFeed('global')" id="globTab" class="flex-1 py-2 text-[10px] font-black rounded-lg transition-all duration-300">GLOBAL</button>
             </div>
         </header>
-        <main id="feed" class="p-4 space-y-3 flex-1"></main>
-    </div>
-    <script>
-        async function load(type) {
-            const feed = document.getElementById('feed');
-            document.getElementById('dBtn').className = type==='domestic' ? "flex-1 py-2 text-[10px] font-bold rounded-lg bg-blue-600" : "flex-1 py-2 text-[10px] font-bold rounded-lg text-slate-500";
-            document.getElementById('gBtn').className = type==='global' ? "flex-1 py-2 text-[10px] font-bold rounded-lg bg-blue-600" : "flex-1 py-2 text-[10px] font-bold rounded-lg text-slate-500";
-            
-            try {
-                const res = await fetch(`./${type}.xml?t=${Date.now()}`);
-                const text = await res.text();
-                const xml = new DOMParser().parseFromString(text, "text/xml");
-                const items = Array.from(xml.querySelectorAll("item")).slice(0, 30);
 
-                feed.innerHTML = items.map(i => `
-                    <div class="p-4 bg-slate-900/50 border border-slate-800 rounded-xl">
-                        <p class="text-[9px] text-blue-500 font-bold uppercase mb-1">${i.querySelector("source")?.textContent || 'News'}</p>
-                        <h3 class="text-sm font-bold leading-tight">${i.querySelector("title").textContent}</h3>
-                        <a href="${i.querySelector("link").textContent}" target="_blank" class="text-[10px] text-slate-500 mt-2 block">Read full article →</a>
-                    </div>
-                `).join('');
-            } catch (e) { feed.innerHTML = "<p class='text-center py-20 text-slate-600'>Bot is still fetching first news. Wait 5 mins.</p>"; }
+        <main id="feed" class="flex-1 overflow-y-auto p-4 space-y-4 custom-scrollbar">
+            <div class="flex flex-col items-center justify-center py-20 opacity-20">
+                <div class="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mb-4"></div>
+                <p class="text-xs font-bold tracking-widest">CONNECTING TO BOT...</p>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        let currentCategory = 'domestic';
+
+        async function loadFeed(type) {
+            currentCategory = type;
+            const feed = document.getElementById('feed');
+            const dTab = document.getElementById('domTab');
+            const gTab = document.getElementById('globTab');
+
+            // Update UI State
+            dTab.className = type === 'domestic' ? "flex-1 py-2 text-[10px] font-black rounded-lg bg-blue-600 text-white shadow-lg" : "flex-1 py-2 text-[10px] font-black rounded-lg text-slate-500 hover:text-slate-300";
+            gTab.className = type === 'global' ? "flex-1 py-2 text-[10px] font-black rounded-lg bg-blue-600 text-white shadow-lg" : "flex-1 py-2 text-[10px] font-black rounded-lg text-slate-500 hover:text-slate-300";
+
+            try {
+                // Fetch with cache-busting timestamp
+                const response = await fetch(`./${type}.xml?t=${new Date().getTime()}`);
+                const text = await response.text();
+                const xml = new DOMParser().parseFromString(text, "text/xml");
+                const items = Array.from(xml.querySelectorAll("item")).slice(0, 40);
+
+                feed.innerHTML = items.map(item => {
+                    const title = item.querySelector("title").textContent;
+                    const link = item.querySelector("link").textContent;
+                    const date = new Date(item.querySelector("pubDate").textContent).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+                    const source = item.querySelector("source")?.textContent || "Intelligence";
+
+                    return `
+                        <div class="group p-4 bg-slate-900/40 border border-slate-900 rounded-2xl hover:border-blue-500/50 transition-all duration-300">
+                            <div class="flex justify-between items-center mb-2">
+                                <span class="text-[9px] font-black text-blue-500 uppercase tracking-widest">${source}</span>
+                                <span class="text-[9px] text-slate-600 font-mono">${date}</span>
+                            </div>
+                            <h3 class="text-sm font-bold leading-tight text-slate-200 group-hover:text-white transition-colors">${title}</h3>
+                            <a href="${link}" target="_blank" class="inline-block mt-3 text-[10px] font-bold text-slate-500 hover:text-blue-400 uppercase tracking-widest transition-colors">Open Full Report ↗</a>
+                        </div>
+                    `;
+                }).join('');
+
+                document.getElementById('last-update').textContent = `Live: ${new Date().toLocaleTimeString()}`;
+            } catch (err) {
+                feed.innerHTML = `<div class="text-center py-20 text-slate-700 text-xs">Bot is waking up. Refresh in 1 min.</div>`;
+            }
         }
-        load('domestic');
+
+        // Auto-refresh every 15 minutes while page is open
+        setInterval(() => loadFeed(currentCategory), 900000);
+
+        // Initial Load
+        loadFeed('domestic');
+
+        // Service Worker Registration for PWA
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('sw.js');
+        }
     </script>
 </body>
 </html>
