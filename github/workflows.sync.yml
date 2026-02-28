@@ -10,18 +10,16 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Fetch Latest Intelligence
+      - name: Fetch Intelligence
         run: |
-          # We use -A to mimic a real browser (Chrome)
-          # We simplified the query to ensure Google returns results every time
-          curl -A "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36" -L "https://news.google.com/rss/search?q=Wheat+India+Procurement+OR+MSP&hl=en-IN&gl=IN&ceid=IN:en" > domestic.xml
-          
-          curl -A "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36" -L "https://news.google.com/rss/search?q=Wheat+Russia+OR+USDA+OR+Production+forecast&hl=en-US&gl=US&ceid=US:en" > global.xml
-      
-      - name: Save to Repository
+          # Fetch Domestic (India Focus)
+          curl -A "Mozilla/5.0" -L "https://news.google.com/rss/search?q=Wheat+India+FCI+MSP+Procurement+Punjab+Haryana&hl=en-IN&gl=IN&ceid=IN:en" > domestic.xml
+          # Fetch Global (Trade/Weather Focus)
+          curl -A "Mozilla/5.0" -L "https://news.google.com/rss/search?q=Wheat+Russia+IKAR+ABARES+USDA+Production+Price&hl=en-US&gl=US&ceid=US:en" > global.xml
+      - name: Save
         run: |
-          git config user.name "WheatBot"
+          git config user.name "NewsBot"
           git config user.email "bot@github.com"
-          git add domestic.xml global.xml
-          # Only commit if files actually changed
-          git diff --quiet && git diff --staged --quiet || (git commit -m "Auto-sync: $(date)" && git push)
+          git add .
+          git commit -m "Sync Intel" || exit 0
+          git push
