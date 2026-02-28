@@ -1,8 +1,8 @@
 name: Wheat News Bot
 on:
   schedule:
-    - cron: '0 * * * *'
-  workflow_dispatch:
+    - cron: '*/15 * * * *' # Runs every 15 minutes
+  workflow_dispatch:      # Allows you to click a button to refresh manually
 permissions:
   contents: write
 jobs:
@@ -10,16 +10,16 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Fetch News
+      - name: Fetch Latest Intelligence
         run: |
-          # Domestic
+          # Fetch Domestic (India)
           curl -s "https://news.google.com/rss/search?q=Wheat+India+FCI+MSP+Punjab+Procurement&hl=en-IN&gl=IN&ceid=IN:en" > domestic.xml
-          # Global
+          # Fetch Global (International)
           curl -s "https://news.google.com/rss/search?q=Wheat+Russia+IKAR+ABARES+Production+Estimates&hl=en-US&gl=US&ceid=US:en" > global.xml
-      - name: Save to Repo
+      - name: Save to Repository
         run: |
-          git config user.name "NewsBot"
+          git config user.name "WheatBot"
           git config user.email "bot@github.com"
           git add .
-          git commit -m "Sync Wheat Intel" || exit 0
+          git commit -m "Auto-sync: $(date)" || exit 0
           git push
