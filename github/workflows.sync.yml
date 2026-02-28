@@ -1,8 +1,8 @@
 name: Wheat News Bot
 on:
   schedule:
-    - cron: '*/15 * * * *' # Runs every 15 minutes
-  workflow_dispatch:      # Allows you to click a button to refresh manually
+    - cron: '*/15 * * * *'
+  workflow_dispatch:
 permissions:
   contents: write
 jobs:
@@ -12,14 +12,16 @@ jobs:
       - uses: actions/checkout@v4
       - name: Fetch Latest Intelligence
         run: |
-          # Fetch Domestic (India)
-          curl -s "https://news.google.com/rss/search?q=Wheat+India+FCI+MSP+Punjab+Procurement&hl=en-IN&gl=IN&ceid=IN:en" > domestic.xml
-          # Fetch Global (International)
-          curl -s "https://news.google.com/rss/search?q=Wheat+Russia+IKAR+ABARES+Production+Estimates&hl=en-US&gl=US&ceid=US:en" > global.xml
+          # We use -A to mimic a real browser (Chrome)
+          # We simplified the query to ensure Google returns results every time
+          curl -A "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36" -L "https://news.google.com/rss/search?q=Wheat+India+Procurement+OR+MSP&hl=en-IN&gl=IN&ceid=IN:en" > domestic.xml
+          
+          curl -A "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36" -L "https://news.google.com/rss/search?q=Wheat+Russia+OR+USDA+OR+Production+forecast&hl=en-US&gl=US&ceid=US:en" > global.xml
+      
       - name: Save to Repository
         run: |
           git config user.name "WheatBot"
           git config user.email "bot@github.com"
-          git add .
-          git commit -m "Auto-sync: $(date)" || exit 0
-          git push
+          git add domestic.xml global.xml
+          # Only commit if files actually changed
+          git diff --quiet && git diff --staged --quiet || (git commit -m "Auto-sync: $(date)" && git push)
