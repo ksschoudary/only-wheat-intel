@@ -1,0 +1,25 @@
+name: Wheat News Bot
+on:
+  schedule:
+    - cron: '0 * * * *'
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Fetch News
+        run: |
+          # Domestic
+          curl -s "https://news.google.com/rss/search?q=Wheat+India+FCI+MSP+Punjab+Procurement&hl=en-IN&gl=IN&ceid=IN:en" > domestic.xml
+          # Global
+          curl -s "https://news.google.com/rss/search?q=Wheat+Russia+IKAR+ABARES+Production+Estimates&hl=en-US&gl=US&ceid=US:en" > global.xml
+      - name: Save to Repo
+        run: |
+          git config user.name "NewsBot"
+          git config user.email "bot@github.com"
+          git add .
+          git commit -m "Sync Wheat Intel" || exit 0
+          git push
