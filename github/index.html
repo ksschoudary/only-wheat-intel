@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Wheat Intelligence</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-slate-950 text-white font-sans">
+    <div class="max-w-md mx-auto min-h-screen border-x border-slate-800 flex flex-col">
+        <header class="p-6 sticky top-0 bg-slate-900/90 backdrop-blur-md border-b border-slate-800 z-20">
+            <h1 class="text-xl font-black italic text-blue-400">WHEAT INTEL</h1>
+            <div class="flex gap-2 mt-4 bg-black p-1 rounded-xl">
+                <button onclick="load('domestic')" id="dBtn" class="flex-1 py-2 text-[10px] font-bold rounded-lg bg-blue-600">DOMESTIC</button>
+                <button onclick="load('global')" id="gBtn" class="flex-1 py-2 text-[10px] font-bold rounded-lg text-slate-500">GLOBAL</button>
+            </div>
+        </header>
+        <main id="feed" class="p-4 space-y-3 flex-1"></main>
+    </div>
+    <script>
+        async function load(type) {
+            const feed = document.getElementById('feed');
+            document.getElementById('dBtn').className = type==='domestic' ? "flex-1 py-2 text-[10px] font-bold rounded-lg bg-blue-600" : "flex-1 py-2 text-[10px] font-bold rounded-lg text-slate-500";
+            document.getElementById('gBtn').className = type==='global' ? "flex-1 py-2 text-[10px] font-bold rounded-lg bg-blue-600" : "flex-1 py-2 text-[10px] font-bold rounded-lg text-slate-500";
+            
+            try {
+                const res = await fetch(`./${type}.xml?t=${Date.now()}`);
+                const text = await res.text();
+                const xml = new DOMParser().parseFromString(text, "text/xml");
+                const items = Array.from(xml.querySelectorAll("item")).slice(0, 30);
+
+                feed.innerHTML = items.map(i => `
+                    <div class="p-4 bg-slate-900/50 border border-slate-800 rounded-xl">
+                        <p class="text-[9px] text-blue-500 font-bold uppercase mb-1">${i.querySelector("source")?.textContent || 'News'}</p>
+                        <h3 class="text-sm font-bold leading-tight">${i.querySelector("title").textContent}</h3>
+                        <a href="${i.querySelector("link").textContent}" target="_blank" class="text-[10px] text-slate-500 mt-2 block">Read full article →</a>
+                    </div>
+                `).join('');
+            } catch (e) { feed.innerHTML = "<p class='text-center py-20 text-slate-600'>Bot is still fetching first news. Wait 5 mins.</p>"; }
+        }
+        load('domestic');
+    </script>
+</body>
+</html>
